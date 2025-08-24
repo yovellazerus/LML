@@ -117,6 +117,7 @@ Err Program_delate(int argc, char argv[][MAX_TOKEN_SIZE]);
 
 Err Program_cd(int argc, char argv[][MAX_TOKEN_SIZE]);
 Err Program_mkdir(int argc, char argv[][MAX_TOKEN_SIZE]);
+Err Program_dumpDirs(int argc, char argv[][MAX_TOKEN_SIZE]);
 
 #define CREATE_ENTRY(idf, prog) {.name = idf, .program = prog}
 
@@ -130,6 +131,7 @@ Entry Program_table[] = {
     CREATE_ENTRY("delate", Program_delate),
 	CREATE_ENTRY("cd", Program_cd),
 	CREATE_ENTRY("mkdir", Program_mkdir),
+	CREATE_ENTRY("dumpDirs", Program_dumpDirs),
     
     
     
@@ -166,6 +168,12 @@ Err shell_chingDir(const char* name);
 
 
 // =======================================================================================
+
+void dump_dirs(){
+	for(int i = 0; i << MAX_SUB_DIRS; i++){
+		printf("%s\n", current_dir->sub_dirs[i]->key);
+	}
+}
 
 // implementation:
 
@@ -505,4 +513,9 @@ Err Program_mkdir(int argc, char argv[][MAX_TOKEN_SIZE]){
 	}
 	current_dir->sub_dirs[current_dir->number_of_sub_dirs++] = new_dir_entry;
 	return Err_ok;
+}
+Err Program_dumpDirs(int argc, char argv[][MAX_TOKEN_SIZE]){
+	for(int i = 0; i < MAX_SUB_DIRS; i++){
+		if(current_dir->sub_dirs[i]->key) printf("%s\n", current_dir->sub_dirs[i]->key);
+	}
 }

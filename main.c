@@ -8,13 +8,13 @@
 #define MAX_LINE 256
 #define MAX_TOKEN_SIZE 16
 #define MAX_TOKEN_COUNT (MAX_LINE / MAX_TOKEN_SIZE)
-#define DEFAULT_PROMPT "shell>"
 #define MAX_ALIAS_CAPACITY 256
 #define MAX_SUB_DIRS 32
 #define MAX_FILE_NAME 32
 #define MAX_DEPTH 32
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+#define NO_CLA_PROGRAM() (void)argc; (void)argv;
 
 // macro magic:
 // =======================================================================================
@@ -72,8 +72,6 @@ const char* error_to_str(int err) {
 // shell "data structors":
 // =======================================================================================
 
-const char* PROMPT = DEFAULT_PROMPT;
-
 typedef struct Alias_t {
     char* name;
     int val;
@@ -114,7 +112,6 @@ typedef struct Entry_t {
 Err Program_exit(int argc, char argv[][MAX_TOKEN_SIZE]);
 Err Program_clear(int argc, char argv[][MAX_TOKEN_SIZE]);
 Err Program_dump(int argc, char argv[][MAX_TOKEN_SIZE]);
-Err Program_prompt(int argc, char argv[][MAX_TOKEN_SIZE]);
 Err Program_alias(int argc, char argv[][MAX_TOKEN_SIZE]);
 Err Program_dalias(int argc, char argv[][MAX_TOKEN_SIZE]);
 Err Program_delate(int argc, char argv[][MAX_TOKEN_SIZE]);
@@ -129,7 +126,6 @@ Entry Program_table[] = {
     CREATE_ENTRY("exit", Program_exit),
     CREATE_ENTRY("clear", Program_clear),
     CREATE_ENTRY("dump", Program_dump),
-    CREATE_ENTRY("prompt", Program_prompt),
     CREATE_ENTRY("alias", Program_alias),
     CREATE_ENTRY("dalias", Program_dalias),
     CREATE_ENTRY("delate", Program_delate),
@@ -147,7 +143,7 @@ Entry Program_table[] = {
 
 // printing and error report
 void shell_error(int err);
-void shell_print_prompt(const char* prompt);
+void shell_print_prompt();
 void shell_dump_argv(char argv[][MAX_TOKEN_SIZE], int argc);
 
 // parsing and lexing
@@ -173,12 +169,6 @@ Err shell_chingDir(const char* name);
 
 // =======================================================================================
 
-void dump_dirs(){
-	for(int i = 0; i << MAX_SUB_DIRS; i++){
-		printf("%s\n", current_dir->sub_dirs[i]->key);
-	}
-}
-
 // implementation:
 
 int main()
@@ -192,7 +182,7 @@ int main()
 
 	while (true) {
 	    
-		shell_print_prompt(PROMPT);
+		shell_print_prompt();
 		if (!fgets(line_buffer, MAX_LINE, stdin)) {
 			shell_error(Err_fgets);
 		}
@@ -220,12 +210,12 @@ Dir_entry *shell_mkdir(const char *name)
     if (!new_dir->name) { free(new_dir); free(res); return NULL; }
 
     new_dir->number_of_sub_dirs = 0;
-    // (optional, but nice) zero child slots
+    
     for (int i = 0; i < MAX_SUB_DIRS; i++) new_dir->sub_dirs[i] = NULL;
 
     res->key = strdup(name);
     if (!res->key) {
-        free((char*)new_dir->name);  // free name first
+        free((char*)new_dir->name); 
         free(new_dir);
         free(res);
         return NULL;
@@ -238,7 +228,7 @@ Dir_entry *shell_mkdir(const char *name)
 Dir_entry *shell_getDirEntry(Dir_entry* table[MAX_SUB_DIRS], int table_size, const char *name)
 {
     for (int i = 0; i < table_size; i++) {
-        Dir_entry* e = table[i];               // table is array of pointers
+        Dir_entry* e = table[i];              
         if (e && strcmp(e->key, name) == 0) {
             return e;
         }
@@ -399,7 +389,8 @@ void shell_dump_argv(char argv[][MAX_TOKEN_SIZE], int argc) {
 	}
 }
 
-void shell_print_prompt(const char* prompt) {
+void shell_print_prompt() {
+	printf("Directory:");
 	Dir* path[MAX_DEPTH] = {0};
 	int i = 0;
 	Dir* curr = current_dir;
@@ -472,20 +463,13 @@ Err Program_exit(int argc, char argv[][MAX_TOKEN_SIZE]){
 }
 
 Err Program_clear(int argc, char argv[][MAX_TOKEN_SIZE]){
+	NO_CLA_PROGRAM();
     system("clear");
     return Err_ok;
 }
 Err Program_dump(int argc, char argv[][MAX_TOKEN_SIZE]){
     shell_dump_argv(argv, argc);
     return Err_ok;
-}
-Err Program_prompt(int argc, char argv[][MAX_TOKEN_SIZE]){
-    if(argc < 2){
-	   PROMPT = DEFAULT_PROMPT;
-	   return Err_ok;
-	}
-	PROMPT = argv[1];
-	return Err_ok;
 }
 Err Program_alias(int argc, char argv[][MAX_TOKEN_SIZE]){
     if(argc == 1){
@@ -506,6 +490,7 @@ Err Program_dalias(int argc, char argv[][MAX_TOKEN_SIZE]){
     return Err_ok;
 }
 Err Program_delate(int argc, char argv[][MAX_TOKEN_SIZE]){
+	NO_CLA_PROGRAM();
     shell_removeALL();
     return Err_ok;
 }
@@ -522,10 +507,10 @@ Err Program_cd(int argc, char argv[][MAX_TOKEN_SIZE]){
 Err Program_mkdir(int argc, char argv[][MAX_TOKEN_SIZE]){
     if (argc < 2) return Err_noArgsProvided;
 
-    if (current_dir->number_of_sub_dirs >= MAX_SUB_DIRS)
+    if (current_dir->number_of_sub_dirs >= MAX_SUB_DIRS){
         return Err_dirTableFull; 
-
-	for(int i = 0; i < strlen(argv[1]); i++){
+	}
+	for(size_t i = 0; i < strlen(argv[1]); i++){
 		if(!isalpha(argv[1][i]) && !isalnum(argv[1][i]) && argv[1][i] != '_'){
 			return Err_dirMustBeIdf;
 		}
@@ -548,6 +533,7 @@ Err Program_mkdir(int argc, char argv[][MAX_TOKEN_SIZE]){
     return Err_ok;
 }
 Err Program_dumpDirs(int argc, char argv[][MAX_TOKEN_SIZE]){
+	NO_CLA_PROGRAM();
     for (int i = 0; i < (int)current_dir->number_of_sub_dirs; i++) {
         printf("%s\n", current_dir->sub_dirs[i]->key);
     }

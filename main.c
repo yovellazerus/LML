@@ -94,7 +94,7 @@ typedef struct Dir_t
 
 } Dir;
 
-Dir root_t = { .name = "root", .number_of_sub_dirs = 0 };
+Dir root_t = { .name = "", .number_of_sub_dirs = 0 };
 
 Dir* root = &root_t;
 Dir* current_dir = NULL;
@@ -118,7 +118,8 @@ Err Program_delate(int argc, char argv[][MAX_TOKEN_SIZE]);
 
 Err Program_cd(int argc, char argv[][MAX_TOKEN_SIZE]);
 Err Program_mkdir(int argc, char argv[][MAX_TOKEN_SIZE]);
-Err Program_dumpDirs(int argc, char argv[][MAX_TOKEN_SIZE]);
+Err Program_ls(int argc, char argv[][MAX_TOKEN_SIZE]);
+Err Program_tree(int argc, char argv[][MAX_TOKEN_SIZE]);
 
 #define CREATE_ENTRY(idf, prog) {.name = idf, .program = prog}
 
@@ -131,7 +132,8 @@ Entry Program_table[] = {
     CREATE_ENTRY("delate", Program_delate),
 	CREATE_ENTRY("cd", Program_cd),
 	CREATE_ENTRY("mkdir", Program_mkdir),
-	CREATE_ENTRY("dumpDirs", Program_dumpDirs),
+	CREATE_ENTRY("ls", Program_ls),
+    CREATE_ENTRY("tree", Program_tree),
     
     
     
@@ -376,7 +378,7 @@ int shell_split_line(const char* line, char argv[][MAX_TOKEN_SIZE]) {
 		argv[argc][i] = '\0';
 		argc++;
 
-		if (argc >= MAX_TOKEN_COUNT) shell_error(2);
+		if (argc >= MAX_TOKEN_COUNT) shell_error(Err_toManyTokens);
 
 	}
 
@@ -390,7 +392,7 @@ void shell_dump_argv(char argv[][MAX_TOKEN_SIZE], int argc) {
 }
 
 void shell_print_prompt() {
-	printf("Directory:");
+    printf("Shell ");
 	Dir* path[MAX_DEPTH] = {0};
 	int i = 0;
 	Dir* curr = current_dir;
@@ -410,7 +412,7 @@ void shell_error(int err) {
 	if(err == 0) {
 		return;
 	}
-	fprintf(stderr, "ERROR: `%s`, code: 0x%.2x in shell.\n", error_to_str(err), err);
+	fprintf(stderr, "ERROR: `%s` (code %d) in shell.\n", error_to_str(err), err);
 }
 
 Err shell_parse_argv(int argc, char argv[][MAX_TOKEN_SIZE]) {
@@ -464,7 +466,7 @@ Err Program_exit(int argc, char argv[][MAX_TOKEN_SIZE]){
 
 Err Program_clear(int argc, char argv[][MAX_TOKEN_SIZE]){
 	NO_CLA_PROGRAM();
-    system("clear");
+    printf("\033[2J\033[H");
     return Err_ok;
 }
 Err Program_dump(int argc, char argv[][MAX_TOKEN_SIZE]){
@@ -532,11 +534,43 @@ Err Program_mkdir(int argc, char argv[][MAX_TOKEN_SIZE]){
     current_dir->sub_dirs[current_dir->number_of_sub_dirs++] = e;
     return Err_ok;
 }
-Err Program_dumpDirs(int argc, char argv[][MAX_TOKEN_SIZE]){
+Err Program_ls(int argc, char argv[][MAX_TOKEN_SIZE]){
 	NO_CLA_PROGRAM();
     for (int i = 0; i < (int)current_dir->number_of_sub_dirs; i++) {
         printf("%s\n", current_dir->sub_dirs[i]->key);
     }
+    return Err_ok;
+}
+
+void print_tree_aux(Dir* dir, bool *has_sibling, int depth) {
+    for (int i = 0; i < depth; i++) {
+        if (i == depth - 1) {
+            // last depth level: check if this node has siblings
+            if (has_sibling[i])
+                printf("|---");
+            else
+                printf("'---");
+        } else {
+            // parent levels: print vertical bar if parent has more children
+            if (has_sibling[i])
+                printf("|   ");
+            else
+                printf("    ");
+        }
+    }
+    printf("%s\n", dir->name);
+
+    for (size_t i = 0; i < dir->number_of_sub_dirs; i++) {
+        has_sibling[depth] = (i < dir->number_of_sub_dirs - 1);
+        print_tree_aux(dir->sub_dirs[i]->sub_dir, has_sibling, depth + 1);
+    }
+}
+
+Err Program_tree(int argc, char argv[][MAX_TOKEN_SIZE]) {
+    NO_CLA_PROGRAM();
+    printf("/\n|");
+    bool has_sibling[MAX_DEPTH] = {0};
+    print_tree_aux(root, has_sibling, 0);
     return Err_ok;
 }
 

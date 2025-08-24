@@ -8,8 +8,10 @@
 #define MAX_LINE 256
 #define MAX_TOKEN_SIZE 16
 #define MAX_TOKEN_COUNT (MAX_LINE / MAX_TOKEN_SIZE)
-#define DEFAULT_PROMPT "6502-shell>"
-#define MAX_ALIAS_CAPASITY 256
+#define DEFAULT_PROMPT "shell>"
+#define MAX_ALIAS_CAPACITY 256
+#define MAX_SUB_DIRS 32
+#define MAX_FILE_NAME 32
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -33,10 +35,10 @@
     for(int i = 0; i  < EnumName##_count; i++){                                     \
         fprintf(STREAM, "number: %d, is: `%s`\n", i, EnumName##_to_cstr[i]);        \
     }                                                                               \
-    fprintf(STREAM, "namber of defined %s's: %d\n", #EnumName, EnumName##_count);   \
+    fprintf(STREAM, "number of defined %s's: %d\n", #EnumName, EnumName##_count);   \
 } while(0) 
 
-// error defintions:
+// error definitions:
 // =======================================================================================
 
 #define ERR_LIST(X)                  \
@@ -44,24 +46,27 @@
     X(Err_fgets)                     \
     X(Err_toManyTokens)              \
     X(Err_badArgv)                   \
-    X(Err_unkonCMD)                  \
-    X(Err_toLitelArgs)               \
+    X(Err_unkownCMD)                  \
+    X(Err_toLittleArgs)               \
     X(Err_aliasMustBeIDF)            \
     X(Err_malloc)                    \
     X(Err_aliasExist)                \
-    X(Err_badExitCode)
+    X(Err_badExitCode)				 \
+	X(Err_noDir)					 \
+	X(Err_noArgsProvided)			 \
+	X(Err_DirExist)
 
 MAKE_ENUM(Err, ERR_LIST)
 
 const char* error_to_str(int err) {
     const char* res = Err_to_cstr[err];
     if(!res){
-        res = "UNKWON";
+        res = "UNKNOWN";
     }
     return res;
 }
 
-// shell "deta structors":
+// shell "data structors":
 // =======================================================================================
 
 const char* PROMPT = DEFAULT_PROMPT;
@@ -73,6 +78,24 @@ typedef struct Alias_t {
 } Alias;
 
 Alias* alias_list = NULL;
+
+typedef struct Dir_entry_t {
+	const char* key;
+	void* sub_dir;
+} Dir_entry;
+
+typedef struct Dir_t
+{
+	const char* name;
+	size_t number_of_sub_dirs;
+	Dir_entry* sub_dirs[MAX_SUB_DIRS];
+
+} Dir;
+
+Dir root_t = { .name = "root", .number_of_sub_dirs = 0 };
+
+Dir* root = &root_t;
+Dir* current_dir = NULL;
 
 typedef Err (*Program)(int argc, char argv[][MAX_TOKEN_SIZE]);
 
@@ -92,6 +115,9 @@ Err Program_alias(int argc, char argv[][MAX_TOKEN_SIZE]);
 Err Program_dalias(int argc, char argv[][MAX_TOKEN_SIZE]);
 Err Program_delate(int argc, char argv[][MAX_TOKEN_SIZE]);
 
+Err Program_cd(int argc, char argv[][MAX_TOKEN_SIZE]);
+Err Program_mkdir(int argc, char argv[][MAX_TOKEN_SIZE]);
+
 #define CREATE_ENTRY(idf, prog) {.name = idf, .program = prog}
 
 Entry Program_table[] = {
@@ -102,6 +128,8 @@ Entry Program_table[] = {
     CREATE_ENTRY("alias", Program_alias),
     CREATE_ENTRY("dalias", Program_dalias),
     CREATE_ENTRY("delate", Program_delate),
+	CREATE_ENTRY("cd", Program_cd),
+	CREATE_ENTRY("mkdir", Program_mkdir),
     
     
     
@@ -121,8 +149,7 @@ int shell_split_line(const char* line, char argv[][MAX_TOKEN_SIZE]);
 Program shell_getProgram(const char* name);
 Err shell_parse_argv(int argc, char argv[][MAX_TOKEN_SIZE]);
 
-// Aliass
-Err shell_getAliasIndex(const char* name);
+// Aliases
 void shell_dump_Allalias();
 void shell_dump_alias(const char* name);
 Alias* shell_getAlias(const char* name);
@@ -131,12 +158,22 @@ Err shell_add_alias(const char* name, int val);
 void shell_remove_alias(const char* name);
 void shell_removeALL();
 
+// Dir system
+Dir_entry* shell_mkdir(const char* name);
+void shell_dumpFile(const Dir* name, FILE* stream);
+Dir_entry* shell_getDirEntry(Dir_entry table[MAX_SUB_DIRS], int table_size, const char* name);
+Err shell_chingDir(const char* name);
+
+
 // =======================================================================================
 
-// implamantion:
+// implementation:
 
 int main()
 {
+
+	current_dir = root;
+
 	char line_buffer[MAX_LINE] = {0};
 	char argv[MAX_TOKEN_COUNT][MAX_TOKEN_SIZE];
 	int argc = 0;
@@ -156,6 +193,56 @@ int main()
 
 	}
 
+	return Err_ok;
+}
+
+Dir_entry *shell_mkdir(const char *name)
+{
+    Dir_entry* res = malloc(sizeof(*res));
+	if(!res){
+		return NULL;
+	}
+	Dir* new_dir = malloc(sizeof(*new_dir));
+	if(!new_dir){
+		free(res);
+		return NULL;
+	}
+	new_dir->name = strdup(name);
+	if(!new_dir->name){
+		free(res);
+		free(new_dir);
+		return NULL;
+	}
+	new_dir->number_of_sub_dirs = 0;
+	
+	res->key = strdup(name);
+	if(!res->key){
+		free(res);
+		free(new_dir);
+		free(new_dir->name);
+		return NULL;
+	}
+	res->sub_dir = new_dir;
+
+	return res;
+}
+
+Dir_entry *shell_getDirEntry(Dir_entry table[MAX_SUB_DIRS], int table_size, const char *name)
+{
+    for(int i = 0; i < table_size; i++){
+		if(strcmp(table[i].key, name) == 0){
+			return &table[i];
+		}
+	}
+	return NULL;
+}
+
+Err shell_chingDir(const char* name){
+	Dir_entry* entry = shell_getDirEntry(current_dir->sub_dirs, current_dir->number_of_sub_dirs, name);
+	if(!entry){
+		return Err_noDir;
+	}
+	current_dir = (Dir*) entry->sub_dir;
 	return Err_ok;
 }
 
@@ -240,7 +327,7 @@ void shell_dump_Allalias(){
         printf("no alias in the shell\n");
         return;
     }
-    printf("in the shell %d aliass:\n", shell_AliasSize());
+    printf("in the shell %d aliases:\n", shell_AliasSize());
     while(curr){
         shell_dump_alias(curr->name);
         curr = curr->next;
@@ -270,7 +357,6 @@ Alias* shell_getAlias(const char* name){
 
 int shell_split_line(const char* line, char argv[][MAX_TOKEN_SIZE]) {
 	const char* curr = line;
-	int i = 0;
 	int argc = 0;
 
 	while(*curr) {
@@ -303,7 +389,7 @@ void shell_dump_argv(char argv[][MAX_TOKEN_SIZE], int argc) {
 }
 
 void shell_print_prompt(const char* prompt) {
-	printf("%s ", prompt);
+	printf("%s> ", current_dir->name);
 }
 
 void shell_error(int err) {
@@ -328,7 +414,7 @@ Err shell_parse_argv(int argc, char argv[][MAX_TOKEN_SIZE]) {
         err = program(argc, argv);
     }
     else{
-        err = Err_unkonCMD;
+        err = Err_unkownCMD;
     }
     return err;
 }
@@ -344,7 +430,7 @@ Program shell_getProgram(const char* name){
     return NULL;
 }
 
-// programs implemantion:
+// programs implementation:
 //=============================================================================
 
 Err Program_exit(int argc, char argv[][MAX_TOKEN_SIZE]){
@@ -399,4 +485,24 @@ Err Program_dalias(int argc, char argv[][MAX_TOKEN_SIZE]){
 Err Program_delate(int argc, char argv[][MAX_TOKEN_SIZE]){
     shell_removeALL();
     return Err_ok;
+}
+
+Err Program_cd(int argc, char argv[][MAX_TOKEN_SIZE]){
+	if(argv[1]) return shell_chingDir(argv[1]);
+	return Err_noArgsProvided;
+}
+Err Program_mkdir(int argc, char argv[][MAX_TOKEN_SIZE]){
+	if(!argv[1]){
+		return Err_noArgsProvided;
+	}
+	Dir_entry* new_dir_entry = shell_getDirEntry(current_dir->sub_dirs, current_dir->number_of_sub_dirs, argv[1]);
+	if(new_dir_entry){
+		return Err_DirExist;
+	}
+	new_dir_entry = shell_mkdir(argv[1]);
+	if(!new_dir_entry){
+		return Err_malloc;
+	}
+	current_dir->sub_dirs[current_dir->number_of_sub_dirs++] = new_dir_entry;
+	return Err_ok;
 }

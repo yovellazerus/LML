@@ -12,6 +12,7 @@
 #define MAX_ALIAS_CAPACITY 256
 #define MAX_SUB_DIRS 32
 #define MAX_FILE_NAME 32
+#define MAX_DEPTH 32
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -54,7 +55,9 @@
     X(Err_badExitCode)				 \
 	X(Err_noDir)					 \
 	X(Err_noArgsProvided)			 \
-	X(Err_DirExist)
+	X(Err_dirExist)					 \
+	X(Err_dirTableFull)				 \
+	X(Err_dirMustBeIdf)
 
 MAKE_ENUM(Err, ERR_LIST)
 
@@ -88,6 +91,7 @@ typedef struct Dir_t
 {
 	const char* name;
 	size_t number_of_sub_dirs;
+	struct Dir_t* perent;
 	Dir_entry* sub_dirs[MAX_SUB_DIRS];
 
 } Dir;
@@ -163,7 +167,7 @@ void shell_removeALL();
 // Dir system
 Dir_entry* shell_mkdir(const char* name);
 void shell_dumpFile(const Dir* name, FILE* stream);
-Dir_entry* shell_getDirEntry(Dir_entry table[MAX_SUB_DIRS], int table_size, const char* name);
+Dir_entry* shell_getDirEntry(Dir_entry* table[MAX_SUB_DIRS], int table_size, const char* name);
 Err shell_chingDir(const char* name);
 
 
@@ -207,51 +211,50 @@ int main()
 Dir_entry *shell_mkdir(const char *name)
 {
     Dir_entry* res = malloc(sizeof(*res));
-	if(!res){
-		return NULL;
-	}
-	Dir* new_dir = malloc(sizeof(*new_dir));
-	if(!new_dir){
-		free(res);
-		return NULL;
-	}
-	new_dir->name = strdup(name);
-	if(!new_dir->name){
-		free(res);
-		free(new_dir);
-		return NULL;
-	}
-	new_dir->number_of_sub_dirs = 0;
-	
-	res->key = strdup(name);
-	if(!res->key){
-		free(res);
-		free(new_dir);
-		free(new_dir->name);
-		return NULL;
-	}
-	res->sub_dir = new_dir;
+    if (!res) return NULL;
 
-	return res;
+    Dir* new_dir = malloc(sizeof(*new_dir));
+    if (!new_dir) { free(res); return NULL; }
+
+    new_dir->name = strdup(name);
+    if (!new_dir->name) { free(new_dir); free(res); return NULL; }
+
+    new_dir->number_of_sub_dirs = 0;
+    // (optional, but nice) zero child slots
+    for (int i = 0; i < MAX_SUB_DIRS; i++) new_dir->sub_dirs[i] = NULL;
+
+    res->key = strdup(name);
+    if (!res->key) {
+        free((char*)new_dir->name);  // free name first
+        free(new_dir);
+        free(res);
+        return NULL;
+    }
+    res->sub_dir = new_dir;
+
+    return res;
 }
 
-Dir_entry *shell_getDirEntry(Dir_entry table[MAX_SUB_DIRS], int table_size, const char *name)
+Dir_entry *shell_getDirEntry(Dir_entry* table[MAX_SUB_DIRS], int table_size, const char *name)
 {
-    for(int i = 0; i < table_size; i++){
-		if(strcmp(table[i].key, name) == 0){
-			return &table[i];
-		}
-	}
-	return NULL;
+    for (int i = 0; i < table_size; i++) {
+        Dir_entry* e = table[i];               // table is array of pointers
+        if (e && strcmp(e->key, name) == 0) {
+            return e;
+        }
+    }
+    return NULL;
 }
 
 Err shell_chingDir(const char* name){
-	Dir_entry* entry = shell_getDirEntry(current_dir->sub_dirs, current_dir->number_of_sub_dirs, name);
-	if(!entry){
-		return Err_noDir;
-	}
-	current_dir = (Dir*) entry->sub_dir;
-	return Err_ok;
+	Dir_entry* entry = shell_getDirEntry(current_dir->sub_dirs,
+                                         current_dir->number_of_sub_dirs,
+                                         name);
+    if (!entry) {
+        return Err_noDir;
+    }
+    current_dir = (Dir*) entry->sub_dir;
+    return Err_ok;
 }
 
 void shell_removeALL(){
@@ -397,7 +400,19 @@ void shell_dump_argv(char argv[][MAX_TOKEN_SIZE], int argc) {
 }
 
 void shell_print_prompt(const char* prompt) {
-	printf("%s> ", current_dir->name);
+	Dir* path[MAX_DEPTH] = {0};
+	int i = 0;
+	Dir* curr = current_dir;
+	while (curr)
+	{
+		path[i] = curr;
+		i++;
+		curr = curr->perent;
+	}
+	for(int k = i - 1; k > 0; k--){
+		printf("%s/", path[k]->name);
+	}
+	printf("%s> ", path[0]->name);
 }
 
 void shell_error(int err) {
@@ -496,26 +511,46 @@ Err Program_delate(int argc, char argv[][MAX_TOKEN_SIZE]){
 }
 
 Err Program_cd(int argc, char argv[][MAX_TOKEN_SIZE]){
-	if(argv[1]) return shell_chingDir(argv[1]);
-	return Err_noArgsProvided;
+	if (argc < 2) return Err_noArgsProvided;
+
+	if(strcmp(argv[1], "..") == 0 && current_dir != root){
+		current_dir = current_dir->perent;
+		return Err_ok;
+	}
+    return shell_chingDir(argv[1]);
 }
 Err Program_mkdir(int argc, char argv[][MAX_TOKEN_SIZE]){
-	if(!argv[1]){
-		return Err_noArgsProvided;
+    if (argc < 2) return Err_noArgsProvided;
+
+    if (current_dir->number_of_sub_dirs >= MAX_SUB_DIRS)
+        return Err_dirTableFull; 
+
+	for(int i = 0; i < strlen(argv[1]); i++){
+		if(!isalpha(argv[1][i]) && !isalnum(argv[1][i]) && argv[1][i] != '_'){
+			return Err_dirMustBeIdf;
+		}
 	}
-	Dir_entry* new_dir_entry = shell_getDirEntry(current_dir->sub_dirs, current_dir->number_of_sub_dirs, argv[1]);
-	if(new_dir_entry){
-		return Err_DirExist;
+	if(!isalpha(argv[1][0]) && argv[1][0] != '_'){
+		return Err_dirMustBeIdf;
 	}
-	new_dir_entry = shell_mkdir(argv[1]);
-	if(!new_dir_entry){
-		return Err_malloc;
-	}
-	current_dir->sub_dirs[current_dir->number_of_sub_dirs++] = new_dir_entry;
-	return Err_ok;
+
+    if (shell_getDirEntry(current_dir->sub_dirs, current_dir->number_of_sub_dirs, argv[1])) {
+        return Err_dirExist;
+    }
+
+    Dir_entry* e = shell_mkdir(argv[1]);
+    if (!e) return Err_malloc;
+
+	Dir* e_sub = e->sub_dir;
+	e_sub->perent = current_dir;
+
+    current_dir->sub_dirs[current_dir->number_of_sub_dirs++] = e;
+    return Err_ok;
 }
 Err Program_dumpDirs(int argc, char argv[][MAX_TOKEN_SIZE]){
-	for(int i = 0; i < MAX_SUB_DIRS; i++){
-		if(current_dir->sub_dirs[i]->key) printf("%s\n", current_dir->sub_dirs[i]->key);
-	}
+    for (int i = 0; i < (int)current_dir->number_of_sub_dirs; i++) {
+        printf("%s\n", current_dir->sub_dirs[i]->key);
+    }
+    return Err_ok;
 }
+

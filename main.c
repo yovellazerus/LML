@@ -392,20 +392,25 @@ void shell_dump_argv(char argv[][MAX_TOKEN_SIZE], int argc) {
 }
 
 void shell_print_prompt() {
-    printf("Shell ");
-	Dir* path[MAX_DEPTH] = {0};
-	int i = 0;
-	Dir* curr = current_dir;
-	while (curr)
-	{
-		path[i] = curr;
-		i++;
-		curr = curr->perent;
-	}
-	for(int k = i - 1; k > 0; k--){
-		printf("%s/", path[k]->name);
-	}
-	printf("%s> ", path[0]->name);
+    printf("Shell: ");
+    if(current_dir == root){
+        printf("/> ");
+    }
+    else{
+        Dir* path[MAX_DEPTH] = {0};
+	    int i = 0;
+	    Dir* curr = current_dir;
+	    while (curr)
+	    {
+	    	path[i] = curr;
+	    	i++;
+	    	curr = curr->perent;
+	    }
+	    for(int k = i - 1; k > 0; k--){
+	    	printf("%s/", path[k]->name);
+	    }
+        printf("%s> ", path[0]->name);
+    }
 }
 
 void shell_error(int err) {

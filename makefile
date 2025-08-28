@@ -5,7 +5,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -O2
 
 # Target executable
-TARGET = program.exe
+TARGET = shell.exe
 
 # Source files
 SRCS = main.c
@@ -19,7 +19,7 @@ $(TARGET): $(SRCS)
 
 # Clean build files
 clean:
-	rm -f $(TARGET) *.o
+	del $(TARGET) *.o
 
 # Phony targets
 .PHONY: all clean

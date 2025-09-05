@@ -1,6 +1,5 @@
 
 #include "Graphics.h"
-#include <math.h>
 
 #define EPSILON 1e-6
 #define MAX_ITERATIONS 1000
@@ -24,29 +23,31 @@ double f1(double x){
 }
 
 int main() {
-    // Create canvas
-    Canvas* canvas = Canvas_create(100, 100);
+    Canvas* canvas = Canvas_create(200, 200);
     if (!canvas) {
         return 1;
     }
 
-    // Fill canvas with black
     Canvas_clear(canvas, COLOR_BLACK);
 
-    // Draw a red rectangle
-    Point top_left = {20, 20};
-    Point bottom_right = {70, 60};
-    Canvas_draw_rect(canvas, top_left, bottom_right, COLOR_RED);
+    Circle circle = {.center = {100, 100}, .radius = 25, .fill = COLOR_BLUE, .outline = COLOR_CYAN};
+    Canvas_fill_circle(canvas, &circle);
+    Canvas_outline_circle(canvas, &circle);
 
-    // Draw a white pixel in the center
-    Canvas_set_pixel(canvas, Canvas_getWidth(canvas)/2, Canvas_getHeight(canvas)/2, COLOR_WHITE);
+    Rect rect = {.top_left = {20, 20}, .bottom_right = {70, 60}, .fill = COLOR_RED, .outline = COLOR_MAGENTA};
+    Canvas_fill_rect(canvas, &rect);
+    Canvas_outline_rect(canvas, &rect);
 
-    // Save to PPM
-    if (!Canvas_save_to_ppm(canvas, "test.ppm")) {
+    Line line1 = {.start = {50, 50}, .end = {150, 150}, .color = COLOR_WHITE};
+    Canvas_draw_line(canvas, &line1);
+
+    Line line2 = {.start = {30, 75}, .end = {75, 100}, .color = COLOR_WHITE};
+    Canvas_draw_line(canvas, &line2);
+
+    if (!Canvas_save_to_ppm(canvas, "./Graphic_output/test.ppm")) {
         fprintf(stderr, "Failed to save canvas\n");
     }
 
-    // Free memory
     Canvas_destroy(canvas);
 
     return 0;

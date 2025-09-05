@@ -12,18 +12,18 @@
 typedef uint32_t Color;
 
 enum Colors {
-    COLOR_BLACK   = 0x000000,
-    COLOR_WHITE   = 0xFFFFFF,
-    COLOR_RED     = 0xFF0000,
-    COLOR_GREEN   = 0x00FF00,
-    COLOR_BLUE    = 0x0000FF,
-    COLOR_YELLOW  = 0xFFFF00,
-    COLOR_CYAN    = 0x00FFFF,
-    COLOR_MAGENTA = 0xFF00FF,
-    COLOR_GRAY    = 0x808080,
-    COLOR_ORANGE  = 0xFFA500,
-    COLOR_PINK    = 0xFFC0CB,
-    COLOR_BROWN   = 0xA52A2A,
+    COLOR_BLACK   = 0x00000000,
+    COLOR_WHITE   = 0x00FFFFFF,
+    COLOR_RED     = 0x00FF0000,
+    COLOR_GREEN   = 0x0000FF00,
+    COLOR_BLUE    = 0x000000FF,
+    COLOR_YELLOW  = 0x00FFFF00,
+    COLOR_CYAN    = 0x0000FFFF,
+    COLOR_MAGENTA = 0x00FF00FF,
+    COLOR_GRAY    = 0x00808080,
+    COLOR_ORANGE  = 0x00FFA500,
+    COLOR_PINK    = 0x00FFC0CB,
+    COLOR_BROWN   = 0x00A52A2A,
 };
 
 typedef struct Point_t {
@@ -51,6 +51,15 @@ typedef struct Circle_t {
     Color outline;
 } Circle;
 
+typedef struct Function_t {
+    double (*function_ptr)(double);
+    Color color;
+    double x0; 
+    double x1; 
+    double y0; 
+    double y1;
+} Function;
+
 typedef struct Canvas_t Canvas;
 
 Canvas* Canvas_create(size_t height, size_t width);
@@ -67,6 +76,7 @@ void Canvas_fill_circle(Canvas* canvas, Circle* circle);
 void Canvas_outline_rect(Canvas* canvas, Rect* rect);
 void Canvas_outline_circle(Canvas* canvas, Circle* circle);
 void Canvas_draw_line(Canvas* canvas, Line* line);
+void Canvas_draw_function(Canvas* canvas, Function* function);
 
 bool Canvas_save_to_ppm(Canvas* canvas, const char* output_name);
 

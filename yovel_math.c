@@ -1,25 +1,16 @@
 
 #include "Graphics.h"
 
-#define EPSILON 1e-6
-#define MAX_ITERATIONS 1000
-
-typedef double (*Function)(double);
-
-double derivative(Function f, double x){
-    return (f(x + EPSILON) - f(x)) / EPSILON; 
-}
-
-double findRoot(Function f, double x0){
-    double x = x0;
-    for(int i = 0; i < MAX_ITERATIONS; i++){
-        x = x - f(x) / derivative(f, x);
-    }
-    return x;
+double f0(double x){
+    return x*x;
 }
 
 double f1(double x){
     return x*x*x-2*x*x + 0.25*x + 0.5;
+}
+
+double f2(double x){
+    return pow(x, x);
 }
 
 int main() {
@@ -44,7 +35,27 @@ int main() {
     Line line2 = {.start = {30, 75}, .end = {75, 100}, .color = COLOR_WHITE};
     Canvas_draw_line(canvas, &line2);
 
-    if (!Canvas_save_to_ppm(canvas, "./Graphic_output/test.ppm")) {
+    if (!Canvas_save_to_ppm(canvas, "./Graphic_output/basic_shapes.ppm")) {
+        fprintf(stderr, "Failed to save canvas\n");
+    }
+
+    Canvas_clear(canvas, COLOR_BLACK);
+
+    Line x_axis = {.start = {0, Canvas_getHeight(canvas) / 2}, .end = {Canvas_getWidth(canvas), Canvas_getHeight(canvas) / 2}, .color = COLOR_WHITE};
+    Line y_axis = {.start = {Canvas_getWidth(canvas) / 2, 0}, .end = {Canvas_getWidth(canvas) / 2, Canvas_getHeight(canvas)}, .color = COLOR_WHITE};
+    Canvas_draw_line(canvas, &x_axis);
+    Canvas_draw_line(canvas, &y_axis);
+
+    Function function0 = {.function_ptr = f0, .color = COLOR_RED, -2, 2, -2, 2};
+    Function function1 = {.function_ptr = f1, .color = COLOR_GREEN, -2, 2, -2, 2};
+    Function function2 = {.function_ptr = f2, .color = COLOR_CYAN, -2, 2, -2, 2};
+
+    Canvas_draw_function(canvas, &function0);
+    Canvas_draw_function(canvas, &function1);
+    Canvas_draw_function(canvas, &function2);
+
+    
+    if (!Canvas_save_to_ppm(canvas, "./Graphic_output/basic_function.ppm")) {
         fprintf(stderr, "Failed to save canvas\n");
     }
 

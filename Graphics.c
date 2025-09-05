@@ -130,6 +130,37 @@ void Canvas_draw_line(Canvas *canvas, Line *line) {
     }
 }
 
+void Canvas_draw_function(Canvas *canvas, Function* function)
+{
+    if (!canvas || !canvas->data) return;
+
+    double x_scale = (function->x1 - function->x0) / (canvas->width  - 1);
+    double y_scale = (function->y1 - function->y0) / (canvas->height - 1);
+
+    Point prev = {0, 0};
+    Point curr = {0, 0};
+    int beginning = 2;
+    for (size_t px = 0; px < canvas->width; px++) {
+        double x = function->x0 + px * x_scale;
+        double y = function->function_ptr(x);
+
+        size_t py = (size_t)((y - function->y0) / y_scale);
+
+        if (py < canvas->height) {
+            curr.x = px;
+            curr.y = canvas->height - 1 - py;
+            Line line = {.start = prev, .end = curr, .color = function->color};
+            if(beginning <= 0){
+                Canvas_draw_line(canvas, &line);
+            }
+            else{
+                beginning--;
+            }
+            prev = curr;
+        }
+    }
+}
+
 void Canvas_outline_rect(Canvas* canvas, Rect* rect){
     if (!canvas || !canvas->data) return;
 
@@ -183,11 +214,11 @@ bool Canvas_save_to_ppm(Canvas *canvas, const char *output_name)
 
     for (size_t y = 0; y < canvas->height; y++) {
         for (size_t x = 0; x < canvas->width; x++) {
-            uint32_t pixel = canvas->data[y * canvas->width + x];
+            Color pixel = canvas->data[y * canvas->width + x];
 
             // Assume format 0xAARRGGBB
             // TODO: alpha not in use for now...
-            unsigned char rgb[3];
+            uint8_t rgb[3];
             rgb[0] = (pixel >> 16) & 0xFF; // Red
             rgb[1] = (pixel >> 8) & 0xFF;  // Green
             rgb[2] = (pixel >> 0) & 0xFF;  // Blue

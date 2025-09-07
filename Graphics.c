@@ -161,6 +161,48 @@ void Canvas_draw_function(Canvas *canvas, Function* function)
     }
 }
 
+static void print_char(Canvas* canvas, Text_books *text_books, size_t* curser_y, size_t* curser_x, char ch) {
+    if(ch == '\n'){
+        *curser_y += 8;
+        *curser_x = text_books->frame.top_left.x;
+        return;
+    }
+    const uint8_t* char_bitmap = font[ch - ' '];
+
+    for (size_t i = 0; i < 8; i++) {
+        for (size_t j = 0; j < 8; j++) {
+            size_t x = *curser_x + j;
+            size_t y = *curser_y + i;
+            if(x >= text_books->frame.bottom_right.x){
+                *curser_y += 8;
+                *curser_x = text_books->frame.top_left.x;
+            }
+            if(y + 8 >= text_books->frame.bottom_right.y){
+                return;
+            }
+            if ((char_bitmap[i] >> (7 - j)) & 1)
+                Canvas_set_pixel(canvas, x, y, text_books->font_color);
+            else
+                Canvas_set_pixel(canvas, x, y, text_books->frame.fill);
+        }
+    }
+
+    *curser_x += 8;
+}
+
+
+void Canvas_draw_text_books(Canvas *canvas, Text_books *text_books)
+{
+    if (!canvas || !canvas->data) return;
+    Canvas_fill_rect(canvas, &text_books->frame);
+    Rect frame = text_books->frame;
+    size_t curser_y = frame.top_left.y;
+    size_t curser_x = frame.top_left.x;
+    for(size_t i = 0; i < strlen(text_books->text); i++){
+        print_char(canvas, text_books, &curser_y, &curser_x, text_books->text[i]);
+    }
+}
+
 void Canvas_outline_rect(Canvas* canvas, Rect* rect){
     if (!canvas || !canvas->data) return;
 

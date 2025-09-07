@@ -350,9 +350,38 @@ bool Gaussian(const char** test_name){
     return true;
 }
 
+bool text(const char** test_name){
+    *test_name = __func__;
+    Canvas* canvas = Canvas_create(256, 256);
+    if (!canvas) {
+        return false;
+    }
+
+    Canvas_clear(canvas, COLOR_BLACK);
+
+    Text_books tb = {.frame = {.top_left = {50, 50}, .bottom_right = {250, 250}, .fill=  COLOR_WHITE}, 
+                    .font_color = COLOR_BLACK, 
+                    .text = "1) In the beginning God created the heaven and the earth.\n2) And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters.\n3) And God said, Let there be light: and there was light.\n4) And God saw the light, that it was good: and God divided the light from the darkness.\n5) And God called the light Day, and the darkness he called Night. And the evening and the morning were the first day."};
+
+    Canvas_draw_text_books(canvas, &tb);
+
+    char path[32] = {'\0'};
+    sprintf(path, "./Graphic_output/%s.ppm", *test_name);
+
+    if (!Canvas_save_to_ppm(canvas, path)) {
+        fprintf(stderr, "Failed to save canvas\n");
+        Canvas_destroy(canvas);
+        return false;
+    }
+
+    Canvas_destroy(canvas);
+
+    return true;
+}
+
 typedef bool (*Graphic_test)(const char**);
 
-Graphic_test tests[] = {basic_shapes, basic_functions, mandelbrot_set, rule110, Gaussian, NULL};
+Graphic_test tests[] = {basic_shapes, basic_functions, mandelbrot_set, rule110, Gaussian, text, NULL};
 
 int main() {
     size_t i = 0;

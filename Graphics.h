@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <math.h>
 
+#include "font.h"
+
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 typedef uint32_t Color;
@@ -68,8 +70,10 @@ typedef struct Circle_t {
     Color outline;
 } Circle;
 
+typedef double (*math_func)(double);
+
 typedef struct Function_t {
-    double (*function_ptr)(double);
+    math_func function_ptr;
     Color color;
     double x0; 
     double x1; 
@@ -77,7 +81,11 @@ typedef struct Function_t {
     double y1;
 } Function;
 
-typedef double (*math_func)(double);
+typedef struct Text_books_t {
+    Rect frame;
+    char* text;
+    Color font_color;
+} Text_books;
 
 typedef struct Canvas_t Canvas;
 
@@ -96,6 +104,7 @@ void Canvas_outline_rect(Canvas* canvas, Rect* rect);
 void Canvas_outline_circle(Canvas* canvas, Circle* circle);
 void Canvas_draw_line(Canvas* canvas, Line* line);
 void Canvas_draw_function(Canvas* canvas, Function* function);
+void Canvas_draw_text_books(Canvas* canvas, Text_books* text_books);
 
 bool Canvas_save_to_ppm(Canvas* canvas, const char* output_name);
 

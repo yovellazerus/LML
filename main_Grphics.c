@@ -156,9 +156,136 @@ bool mandelbrot_set(const char** test_name){
     return true;
 }
 
+bool rule110(const char** test_name){
+    *test_name = __func__;
+    Canvas* canvas = Canvas_create(256, 256*2);
+    if (!canvas) {
+        return false;
+    }
+
+    const Color alive = COLOR_WHITE;
+    const Color dead = COLOR_BLACK;
+
+    Canvas_clear(canvas, dead);
+
+    size_t rule110_pattern[8] = {0, 1, 1, 1, 0, 1, 1, 0};
+
+    Color old_row[Canvas_getWidth(canvas)];
+    Color new_row[Canvas_getWidth(canvas)];
+    
+    for(size_t j = 0; j < Canvas_getWidth(canvas); j++){
+            old_row[j] = dead;
+    }
+    old_row[Canvas_getWidth(canvas) / 2] = alive;
+
+    for(size_t i = 0; i < Canvas_getHeight(canvas); i++){
+        for(size_t j = 0; j < Canvas_getWidth(canvas); j++){
+            Canvas_set_pixel(canvas, j, i, old_row[j]);
+        }
+        for(size_t j = 1; j < Canvas_getWidth(canvas) - 1; j++){
+            size_t index = ((size_t)(old_row[j - 1] / alive) << 2) | ((size_t)(old_row[j] / alive) << 1) | ((size_t)(old_row[j + 1] / alive) << 0);
+            new_row[j] = alive * rule110_pattern[index];
+        }
+        for(size_t j = 0; j < Canvas_getWidth(canvas); j++){
+            old_row[j] = new_row[j];
+        }
+    }
+
+    char path[32] = {'\0'};
+    sprintf(path, "./Graphic_output/%s.ppm", *test_name);
+
+    if (!Canvas_save_to_ppm(canvas, path)) {
+        fprintf(stderr, "Failed to save canvas\n");
+        Canvas_destroy(canvas);
+        return false;
+    }
+
+    Canvas_destroy(canvas);
+
+    return true;
+}
+
+static size_t* generate_rule(uint8_t rule) {
+    size_t* arr = malloc(8 * sizeof(size_t));
+    if (!arr) {
+        return NULL;
+    }
+
+    for (int i = 0; i < 8; i++) {
+        arr[i] = (rule >> i) & 1;
+    }
+
+    return arr;
+}
+
+bool all_rules(const char** test_name){
+    *test_name = __func__;
+    
+    const Color alive = COLOR_WHITE;
+    const Color dead = COLOR_BLACK;
+
+    size_t* all_rules_patterns[256] = {NULL};
+
+    for(int rule = 0; rule < 256; rule++){
+        all_rules_patterns[rule] = generate_rule(rule);
+        if(!all_rules_patterns[rule]){
+            for(int i = rule; i >= 0; i--){
+                free(all_rules_patterns[i]);
+            }
+            return false;
+        }
+    }
+
+    for(int rule = 0; rule < 256; rule++){
+        Canvas* canvas = Canvas_create(256, 256);
+        if (!canvas) {
+            return false;
+        }
+        Canvas_clear(canvas, dead);
+
+        Color old_row[Canvas_getWidth(canvas)];
+        Color new_row[Canvas_getWidth(canvas)];
+        
+        for(size_t j = 0; j < Canvas_getWidth(canvas); j++){
+                old_row[j] = dead;
+        }
+        old_row[Canvas_getWidth(canvas) / 2] = alive;
+
+        for(size_t i = 0; i < Canvas_getHeight(canvas); i++){
+            for(size_t j = 0; j < Canvas_getWidth(canvas); j++){
+                Canvas_set_pixel(canvas, j, i, old_row[j]);
+            }
+            for(size_t j = 1; j < Canvas_getWidth(canvas) - 1; j++){
+                size_t index = ((size_t)(old_row[j - 1] / alive) << 2) | ((size_t)(old_row[j] / alive) << 1) | ((size_t)(old_row[j + 1] / alive) << 0);
+                new_row[j] = alive * all_rules_patterns[rule][index];
+            }
+            for(size_t j = 0; j < Canvas_getWidth(canvas); j++){
+                old_row[j] = new_row[j];
+            }
+        }
+
+        char path[32] = {'\0'};
+        sprintf(path, "./rules_output/rule%zu.ppm", rule);
+
+        if (!Canvas_save_to_ppm(canvas, path)) {
+            fprintf(stderr, "Failed to save canvas\n");
+            Canvas_destroy(canvas);
+            return false;
+        }
+
+        Canvas_destroy(canvas);
+    }
+
+    for(int rule = 0; rule < 256; rule++){
+        free(all_rules_patterns[rule]);
+    }
+
+    return true;
+}
+
 typedef bool (*Graphic_test)(const char**);
 
-Graphic_test tests[] = {basic_shapes, basic_functions, mandelbrot_set, NULL};
+Graphic_test tests[] = {basic_shapes, basic_functions, mandelbrot_set, rule110, all_rules, NULL};
 
 int main() {
     size_t i = 0;

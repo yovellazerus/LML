@@ -283,9 +283,76 @@ bool all_rules(const char** test_name){
     return true;
 }
 
+double gaussian1000(double x){
+    double sigma = 1;
+    double pi = 3.14159265359;
+    return (1.0 / sqrt(2*pi*sigma)) * exp(-x*x / (2*sigma*sigma));
+}
+
+double gaussian500(double x){
+    double sigma = 0.5;
+    double pi = 3.14159265359;
+    return (1.0 / sqrt(2*pi*sigma)) * exp(-x*x / (2*sigma*sigma));
+}
+
+double gaussian250(double x){
+    double sigma = 0.25;
+    double pi = 3.14159265359;
+    return (1.0 / sqrt(2*pi*sigma)) * exp(-x*x / (2*sigma*sigma));
+}
+
+double gaussian125(double x){
+    double sigma = 0.125;
+    double pi = 3.14159265359;
+    return (1.0 / sqrt(2*pi*sigma)) * exp(-x*x / (2*sigma*sigma));
+}
+
+double gaussian067(double x){
+    double sigma = 0.067;
+    double pi = 3.14159265359;
+    return (1.0 / sqrt(2*pi*sigma)) * exp(-x*x / (2*sigma*sigma));
+}
+
+math_func gaussian[] = {gaussian1000, gaussian500, gaussian250, gaussian125, gaussian067, NULL};
+
+bool Gaussian(const char** test_name){
+    *test_name = __func__;
+    Canvas* canvas = Canvas_create(256, 256);
+    if (!canvas) {
+        return false;
+    }
+
+    Canvas_clear(canvas, COLOR_BLACK);
+
+    int i = 0;
+    while(gaussian[i]){
+        Function g = {.function_ptr = gaussian[i], .color = COLOR_ARRAY[i % ARRAY_SIZE(COLOR_ARRAY)], -2, 2, -2, 2};
+        Canvas_draw_function(canvas, &g);
+        i++;
+    }
+
+    Line x_axis = {.start = {0, Canvas_getHeight(canvas) / 2}, .end = {Canvas_getWidth(canvas), Canvas_getHeight(canvas) / 2}, .color = COLOR_WHITE};
+    Line y_axis = {.start = {Canvas_getWidth(canvas) / 2, 0}, .end = {Canvas_getWidth(canvas) / 2, Canvas_getHeight(canvas)}, .color = COLOR_WHITE};
+    Canvas_draw_line(canvas, &x_axis);
+    Canvas_draw_line(canvas, &y_axis);
+
+    char path[32] = {'\0'};
+    sprintf(path, "./Graphic_output/%s.ppm", *test_name);
+
+    if (!Canvas_save_to_ppm(canvas, path)) {
+        fprintf(stderr, "Failed to save canvas\n");
+        Canvas_destroy(canvas);
+        return false;
+    }
+
+    Canvas_destroy(canvas);
+
+    return true;
+}
+
 typedef bool (*Graphic_test)(const char**);
 
-Graphic_test tests[] = {basic_shapes, basic_functions, mandelbrot_set, rule110, all_rules, NULL};
+Graphic_test tests[] = {basic_shapes, basic_functions, mandelbrot_set, rule110, Gaussian, NULL};
 
 int main() {
     size_t i = 0;

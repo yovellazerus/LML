@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <math.h>
 
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
 typedef uint32_t Color;
 
 enum Colors {
@@ -24,6 +26,21 @@ enum Colors {
     COLOR_ORANGE  = 0x00FFA500,
     COLOR_PINK    = 0x00FFC0CB,
     COLOR_BROWN   = 0x00A52A2A,
+};
+
+static Color COLOR_ARRAY[] = {
+    COLOR_BLACK  ,
+    COLOR_WHITE  ,
+    COLOR_RED    ,
+    COLOR_GREEN  ,
+    COLOR_BLUE   ,
+    COLOR_YELLOW ,
+    COLOR_CYAN   ,
+    COLOR_MAGENTA,
+    COLOR_GRAY   ,
+    COLOR_ORANGE ,
+    COLOR_PINK   ,
+    COLOR_BROWN  ,
 };
 
 typedef struct Point_t {
@@ -59,6 +76,8 @@ typedef struct Function_t {
     double y0; 
     double y1;
 } Function;
+
+typedef double (*math_func)(double);
 
 typedef struct Canvas_t Canvas;
 

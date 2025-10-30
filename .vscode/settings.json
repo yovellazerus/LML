@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.asm": "ca65",
+        "lib6502.h": "c"
+    }
+}

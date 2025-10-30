@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 // =============================================================================
-// data structers and defines:
+// data struct's and defines:
 // =============================================================================
 
 #define MAX_LINE_SIZE   (32*32)
@@ -150,23 +150,21 @@ void    List_to_cstr(List* list, char* buff){
 }
 
 // =============================================================================
-// haders for the editor:
+// headers for the editor:
 // =============================================================================
 
 typedef enum {
   OK = 0,
   NOPROG,
-  SEGFULT,
   KERNEL,
   NOTOK,
-  NOLANGINST,
   
   UNKNOWN,
 } Err;
 
 char line_buffer[MAX_LINE_SIZE];
 char argv[MAX_TOKEN_COUNT][MAX_TOKEN_SIZE];
-int argc;
+int  argc;
 List* list = NULL;
 char program_as_cstr[MAX_FILE_SIZE];
 
@@ -182,12 +180,12 @@ bool loadFile(char* file_name);
 
 Err     List_run(List* list);
 bool    List_end(List* list);
-Err     List_excute_line(List* list);
+Err     List_exc_line(List* list);
 Err     List_exeToken(List* list, const char* tok);
 Err     List_nextLine(List* list);
 
 // =============================================================================
-// editor implemention:
+// editor implementation:
 // =============================================================================
 
 int main()
@@ -213,96 +211,16 @@ void error(Err err){
         case NOPROG:
             printf("ERROR: no user program.\n");
             break;
-        case SEGFULT:
-            printf("ERROR: SEGFULT.\n");
-            break;
         case KERNEL:
             printf("ERROR: kernel error.\n");
             break;
         case NOTOK:
             printf("ERROR: no token error.\n");
             break;
-        case NOLANGINST:
-            printf("ERROR: not a valide instraction in the langwich.\n");
-            break;
         default:
             printf("ERROR: UNKNOWN error.\n");
             break;
     }
-}
-
-// the function that do the havy basic-like syntax 
-Err     List_exeToken(List* list, const char* tok){
-    if(!list){
-        return NOPROG;
-    }
-    if(!tok){
-        return NOTOK;
-    }
-    
-    // if(strcmp(tok, "print") == 0){
-        
-    // }
-    // else if(strcmp(tok, "goto") == 0){
-        
-    // }
-    
-    
-    
-    // else{
-    //     return NOLANGINST;
-    // }
-    
-    // demo
-    printf("%s, ", tok);
-    
-    return OK;
-}
-
-Err    List_nextLine(List* list){
-    list->pc = list->pc->next;
-    if(list->pc == NULL) return SEGFULT;
-    return OK;
-}
-
-bool    List_end(List* list){
-    if(!list) return NOPROG;
-    if(list->pc == list->tail){
-        return true;
-    }
-    return false;
-}
-
-Err List_excute_line(List* list){
-    
-    if(!list) return NOPROG;
-    Err err = OK;
-    memcpy(line_buffer, list->pc->data, MAX_LINE_SIZE);
-    argc = parseLine();
-    
-    for(int i = 0; i < argc; i++){
-        err = List_exeToken(list, argv[i]);
-        if(err != OK) return err;
-    }
-    
-    return err;
-}
-
-Err List_run(List* list){
-    if(!list){
-        return NOPROG;
-    }
-    Err err = OK;
-    
-    list->pc = list->head->next;
-    while(!List_end(list)){
-        err = List_excute_line(list);
-        if(err != OK) return err;
-        err = List_nextLine(list);
-        if(err != OK) return err;
-    }
-    
-    return OK;
 }
 
 void init(){
@@ -348,7 +266,7 @@ int parseLine()
             if (*str == '"') str++;
             
         } 
-        // all aver token types...
+        
         else {
             int i = 0;
             while (*str && *str != ' ' && *str != '\n' && i < MAX_TOKEN_SIZE - 1) {
@@ -416,12 +334,12 @@ void exeLine(){
         else printf("done!\n");
     }
     else if(strcmp(argv[0], "run") == 0){
-        error(List_run(list));
+        // error(List_run(list));
     }
     
     
     else{
-        printf("ERRPR: no editor cammend: `%s`.\n", argv[0]);
+        printf("ERROR: no editor commend: `%s`.\n", argv[0]);
     }
 }
 
